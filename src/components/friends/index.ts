@@ -1,0 +1,2 @@
+export { FriendsPanel } from "./FriendsPanel";
+

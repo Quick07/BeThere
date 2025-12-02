@@ -1,0 +1,274 @@
+// Prisma schema for BeThere social coordination app
+// Supports: users, friends, groups, statuses, activities, participants, notifications
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USER & AUTHENTICATION
+// ============================================================================
+
+model User {
+  id          String   @id @default(cuid())
+  phone       String?  @unique
+  email       String?  @unique
+  username    String   @unique
+  displayName String   @map("display_name")
+  avatarUrl   String?  @map("avatar_url")
+  isOnline    Boolean  @default(false) @map("is_online")
+  lastSeenAt  DateTime? @map("last_seen_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  sentFriendships     Friendship[]     @relation("SentFriendships")
+  receivedFriendships Friendship[]     @relation("ReceivedFriendships")
+  ownedGroups         FriendGroup[]    @relation("OwnedGroups")
+  groupMemberships    FriendGroupMember[]
+  dayTrackers         DayTracker[]
+  statusTemplates     StatusTemplate[]
+  activities          Activity[]
+  participations      ActivityParticipant[]
+  visibilityOverrides ActivityVisibilityOverride[]
+  notificationSetting NotificationSetting?
+  friendMuteSettings  NotificationSettingFriend[]
+  groupMuteSettings   NotificationSettingGroup[]
+  notifications       Notification[]
+
+  @@map("users")
+}
+
+// ============================================================================
+// FRIENDSHIPS
+// ============================================================================
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
+model Friendship {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  friendId  String           @map("friend_id")
+  status    FriendshipStatus @default(PENDING)
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  user   User @relation("SentFriendships", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("ReceivedFriendships", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@map("friendships")
+}
+
+// ============================================================================
+// FRIEND GROUPS
+// ============================================================================
+
+model FriendGroup {
+  id        String   @id @default(cuid())
+  ownerId   String   @map("owner_id")
+  name      String
+  color     String   @default("#3b82f6")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  owner        User                @relation("OwnedGroups", fields: [ownerId], references: [id], onDelete: Cascade)
+  members      FriendGroupMember[]
+  dayTrackers  DayTracker[]
+  muteSettings NotificationSettingGroup[]
+
+  @@map("friend_groups")
+}
+
+model FriendGroupMember {
+  id        String   @id @default(cuid())
+  groupId   String   @map("group_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  group FriendGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@map("friend_group_members")
+}
+
+// ============================================================================
+// DAY TRACKERS
+// ============================================================================
+
+model DayTracker {
+  id        String    @id @default(cuid())
+  ownerId   String    @map("owner_id")
+  date      DateTime  @db.Date
+  groupId   String?   @map("group_id")
+  name      String    @default("My Day")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  owner      User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  group      FriendGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  activities Activity[]
+
+  @@unique([ownerId, date, name])
+  @@map("day_trackers")
+}
+
+// ============================================================================
+// STATUS TEMPLATES
+// ============================================================================
+
+model StatusTemplate {
+  id        String   @id @default(cuid())
+  ownerId   String?  @map("owner_id") // null = system default
+  label     String
+  color     String   @default("#3b82f6")
+  icon      String   @default("circle")
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  owner      User?      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  activities Activity[]
+
+  @@map("status_templates")
+}
+
+// ============================================================================
+// ACTIVITIES
+// ============================================================================
+
+model Activity {
+  id                        String    @id @default(cuid())
+  trackerId                 String    @map("tracker_id")
+  ownerId                   String    @map("owner_id")
+  statusTemplateId          String    @map("status_template_id")
+  title                     String?   // Optional custom title
+  startTime                 DateTime  @map("start_time")
+  endTime                   DateTime  @map("end_time")
+  endingSoonAt              DateTime? @map("ending_soon_at")
+  useGroupDefaultVisibility Boolean   @default(true) @map("use_group_default_visibility")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+
+  tracker            DayTracker                   @relation(fields: [trackerId], references: [id], onDelete: Cascade)
+  owner              User                         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  statusTemplate     StatusTemplate               @relation(fields: [statusTemplateId], references: [id], onDelete: Restrict)
+  visibilityOverrides ActivityVisibilityOverride[]
+  participants       ActivityParticipant[]
+
+  @@map("activities")
+}
+
+model ActivityVisibilityOverride {
+  id         String  @id @default(cuid())
+  activityId String  @map("activity_id")
+  viewerId   String  @map("viewer_id")
+  canView    Boolean @default(true) @map("can_view")
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  viewer   User     @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@unique([activityId, viewerId])
+  @@map("activity_visibility_overrides")
+}
+
+// ============================================================================
+// PARTICIPANTS
+// ============================================================================
+
+enum ParticipantStatus {
+  JOINED
+  LEFT
+}
+
+model ActivityParticipant {
+  id         String            @id @default(cuid())
+  activityId String            @map("activity_id")
+  userId     String            @map("user_id")
+  status     ParticipantStatus @default(JOINED)
+  joinedAt   DateTime          @default(now()) @map("joined_at")
+  leftAt     DateTime?         @map("left_at")
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([activityId, userId])
+  @@map("activity_participants")
+}
+
+// ============================================================================
+// NOTIFICATIONS & SETTINGS
+// ============================================================================
+
+model NotificationSetting {
+  id               String    @id @default(cuid())
+  userId           String    @unique @map("user_id")
+  mutedGlobalUntil DateTime? @map("muted_global_until")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
+}
+
+model NotificationSettingFriend {
+  id       String  @id @default(cuid())
+  userId   String  @map("user_id")
+  friendId String  @map("friend_id")
+  muted    Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@map("notification_settings_friend")
+}
+
+model NotificationSettingGroup {
+  id      String  @id @default(cuid())
+  userId  String  @map("user_id")
+  groupId String  @map("group_id")
+  muted   Boolean @default(false)
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group FriendGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+  @@map("notification_settings_group")
+}
+
+enum NotificationType {
+  ACTIVITY_CREATED
+  ACTIVITY_UPDATED
+  ACTIVITY_DELETED
+  ACTIVITY_ENDING_SOON
+  PARTICIPANT_JOINED
+  PARTICIPANT_LEFT
+  FRIEND_REQUEST
+  FRIEND_ACCEPTED
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  payload   Json
+  readAt    DateTime?        @map("read_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
