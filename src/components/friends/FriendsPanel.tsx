@@ -1,30 +1,38 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   Search,
   UserPlus,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
   MoreVertical,
-  Bell,
   BellOff,
   UserX,
   MessageCircle,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Input, Button, Avatar, Modal } from "@/components/ui";
+import { Button, Avatar, Modal, Input } from "@/components/ui";
 import { useFriendsStore, useUIStore } from "@/store";
 import type { Friend } from "@/types";
 
 export function FriendsPanel() {
   const { friends, groups } = useFriendsStore();
-  const { openAddFriendModal } = useUIStore();
+  const {
+    isFriendsPanelCollapsed,
+    toggleFriendsPanelCollapsed,
+    friendsPanelWidth,
+    setFriendsPanelWidth,
+  } = useUIStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [onlineExpanded, setOnlineExpanded] = useState(true);
   const [offlineExpanded, setOfflineExpanded] = useState(true);
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const panelRef = useRef<HTMLElement>(null);
 
   const filteredFriends = useMemo(() => {
     if (!searchQuery.trim()) return friends;
@@ -39,11 +47,109 @@ export function FriendsPanel() {
   const onlineFriends = filteredFriends.filter((f) => f.isOnline);
   const offlineFriends = filteredFriends.filter((f) => !f.isOnline);
 
+  // Handle resize
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  const handleResizeMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizing || !panelRef.current) return;
+      const windowWidth = window.innerWidth;
+      const newWidth = windowWidth - e.clientX;
+      setFriendsPanelWidth(newWidth);
+    },
+    [isResizing, setFriendsPanelWidth]
+  );
+
+  const handleResizeEnd = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener("mousemove", handleResizeMove);
+      document.addEventListener("mouseup", handleResizeEnd);
+      document.body.style.cursor = "ew-resize";
+      document.body.style.userSelect = "none";
+    }
+    return () => {
+      document.removeEventListener("mousemove", handleResizeMove);
+      document.removeEventListener("mouseup", handleResizeEnd);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [isResizing, handleResizeMove, handleResizeEnd]);
+
+  // Collapsed state
+  if (isFriendsPanelCollapsed) {
+    return (
+      <aside className="w-12 h-full border-l border-surface-800/50 dark:border-surface-800/50 light:border-surface-200 glass flex flex-col items-center py-4 transition-all duration-300">
+        <button
+          onClick={toggleFriendsPanelCollapsed}
+          className="p-2 rounded-lg text-surface-400 hover:text-surface-200 hover:bg-surface-800/50 transition-colors"
+          title="Expand panel"
+        >
+          <ChevronLeft size={20} />
+        </button>
+
+        {/* Mini friend indicators */}
+        <div className="flex-1 flex flex-col gap-2 mt-4 overflow-y-auto items-center">
+          <div className="flex flex-col gap-1">
+            {onlineFriends.slice(0, 4).map((friend) => (
+              <Avatar
+                key={friend.id}
+                name={friend.displayName}
+                size="xs"
+                isOnline={true}
+              />
+            ))}
+          </div>
+          {friends.length > 4 && (
+            <span className="text-[10px] text-surface-500">
+              +{friends.length - 4}
+            </span>
+          )}
+        </div>
+
+        <div className="mt-auto">
+          <Users size={16} className="text-surface-500" />
+        </div>
+      </aside>
+    );
+  }
+
   return (
-    <aside className="w-72 h-full border-l border-surface-800/50 glass flex flex-col">
+    <aside
+      ref={panelRef}
+      className="h-full border-l border-surface-800/50 glass flex flex-col relative transition-all duration-200"
+      style={{ width: friendsPanelWidth }}
+    >
+      {/* Resize Handle */}
+      <div
+        className={cn(
+          "absolute top-0 left-0 w-1 h-full cursor-ew-resize group",
+          "hover:bg-primary-500/50 transition-colors",
+          isResizing && "bg-primary-500"
+        )}
+        onMouseDown={handleResizeStart}
+      >
+        <div className="absolute top-1/2 -translate-y-1/2 left-0 w-4 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="w-1 h-6 rounded-full bg-primary-500/50" />
+        </div>
+      </div>
+
       {/* Header */}
       <div className="p-4 border-b border-surface-800/50">
         <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={toggleFriendsPanelCollapsed}
+            className="p-1.5 rounded-lg text-surface-400 hover:text-surface-200 hover:bg-surface-800/50 transition-colors"
+            title="Collapse panel"
+          >
+            <ChevronRight size={18} />
+          </button>
           <h2 className="text-lg font-semibold text-surface-100">Friends</h2>
           <Button
             variant="ghost"
@@ -144,10 +250,10 @@ export function FriendsPanel() {
               className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-surface-800/50 cursor-pointer transition-colors"
             >
               <div
-                className="w-3 h-3 rounded-full"
+                className="w-3 h-3 rounded-full shrink-0"
                 style={{ backgroundColor: group.color }}
               />
-              <span className="text-sm text-surface-200 flex-1">
+              <span className="text-sm text-surface-200 flex-1 truncate">
                 {group.name}
               </span>
               <span className="text-xs text-surface-500">
@@ -182,8 +288,6 @@ interface FriendItemProps {
 }
 
 function FriendItem({ friend, index, onSelect }: FriendItemProps) {
-  const [showMenu, setShowMenu] = useState(false);
-
   return (
     <div
       className={cn(
@@ -242,7 +346,6 @@ function AddFriendModal({
   const [searchValue, setSearchValue] = useState("");
 
   const handleSendRequest = () => {
-    // TODO: Implement friend request API
     console.log(`Sending friend request via ${searchType}: ${searchValue}`);
     setSearchValue("");
     onClose();
@@ -331,4 +434,3 @@ function FriendOptionsModal({
     </Modal>
   );
 }
-

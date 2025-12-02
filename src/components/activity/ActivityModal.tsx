@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Clock,
   Users,
@@ -9,10 +9,12 @@ import {
   UserPlus,
   Trash2,
   Timer,
+  Edit2,
+  Check,
   X,
 } from "lucide-react";
-import { cn, formatTimeRange, hexToRgba, getInitials } from "@/lib/utils";
-import { Modal, Button, Avatar, Badge } from "@/components/ui";
+import { cn, formatTimeRange, hexToRgba } from "@/lib/utils";
+import { Modal, Button, Avatar, Badge, TimePicker } from "@/components/ui";
 import { useUIStore, useActivitiesStore, useFriendsStore, useUserStore } from "@/store";
 import { QUICK_EXIT_DURATION } from "@/lib/constants";
 import { addMinutes } from "date-fns";
@@ -26,6 +28,9 @@ export function ActivityModal() {
 
   const { isActivityModalOpen, selectedActivity } = modals;
   const [showVisibilityPanel, setShowVisibilityPanel] = useState(false);
+  const [isEditingTime, setIsEditingTime] = useState(false);
+  const [editStartTime, setEditStartTime] = useState<Date | null>(null);
+  const [editEndTime, setEditEndTime] = useState<Date | null>(null);
 
   const isOwner = selectedActivity?.ownerId === currentUser?.id;
   const isEndingSoon = useMemo(() => {
@@ -39,6 +44,14 @@ export function ActivityModal() {
       (p) => p.userId === currentUser.id && p.status === "JOINED"
     );
   }, [selectedActivity, currentUser]);
+
+  // Initialize edit times when activity changes
+  useEffect(() => {
+    if (selectedActivity) {
+      setEditStartTime(new Date(selectedActivity.startTime));
+      setEditEndTime(new Date(selectedActivity.endTime));
+    }
+  }, [selectedActivity]);
 
   if (!selectedActivity) return null;
 
@@ -68,6 +81,22 @@ export function ActivityModal() {
     closeActivityModal();
   };
 
+  const handleSaveTime = () => {
+    if (editStartTime && editEndTime && editEndTime > editStartTime) {
+      updateActivity(selectedActivity.id, {
+        startTime: editStartTime,
+        endTime: editEndTime,
+      });
+      setIsEditingTime(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditStartTime(new Date(startTime));
+    setEditEndTime(new Date(endTime));
+    setIsEditingTime(false);
+  };
+
   return (
     <Modal
       isOpen={isActivityModalOpen}
@@ -87,13 +116,66 @@ export function ActivityModal() {
             >
               {label}
             </h2>
-            <p className="text-surface-300 mt-1 flex items-center gap-2">
-              <Clock size={14} />
-              {formatTimeRange(startTime, endTime)}
-            </p>
+            
+            {/* Time Display / Edit */}
+            {!isEditingTime ? (
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-surface-300 flex items-center gap-2">
+                  <Clock size={14} />
+                  {formatTimeRange(startTime, endTime)}
+                </p>
+                {isOwner && (
+                  <button
+                    onClick={() => setIsEditingTime(true)}
+                    className="p-1 rounded text-surface-400 hover:text-surface-200 hover:bg-surface-700/50 transition-colors"
+                    title="Edit time"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="mt-3 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  {editStartTime && (
+                    <TimePicker
+                      label="Start"
+                      value={editStartTime}
+                      onChange={setEditStartTime}
+                    />
+                  )}
+                  {editEndTime && (
+                    <TimePicker
+                      label="End"
+                      value={editEndTime}
+                      onChange={setEditEndTime}
+                      minTime={editStartTime || undefined}
+                    />
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancelEdit}
+                  >
+                    <X size={14} />
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleSaveTime}
+                  >
+                    <Check size={14} />
+                    Save
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {isEndingSoon && (
+          {isEndingSoon && !isEditingTime && (
             <Badge variant="warning" className="flex items-center gap-1">
               <Timer size={12} />
               Ending Soon
@@ -227,4 +309,3 @@ export function ActivityModal() {
     </Modal>
   );
 }
-

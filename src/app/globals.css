@@ -69,31 +69,170 @@ body {
   overflow-x: hidden;
 }
 
-body {
+/* ============================================================================
+   DARK THEME (Default)
+   ============================================================================ */
+body,
+.dark {
   font-family: var(--font-outfit);
   background: linear-gradient(135deg, #0c0a09 0%, #1c1917 50%, #292524 100%);
   color: #fafaf9;
   min-height: 100vh;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
+.dark .glass {
+  background: rgba(28, 25, 23, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .glass-light {
+  background: rgba(250, 250, 249, 0.05);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dark .modal-overlay {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.dark .tracker-grid {
+  background-image: 
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 100% var(--hour-height);
+}
+
+/* ============================================================================
+   LIGHT THEME
+   ============================================================================ */
+.light {
+  font-family: var(--font-outfit);
+  background: linear-gradient(135deg, #fafaf9 0%, #f5f5f4 50%, #e7e5e4 100%);
+  color: #1c1917;
+  min-height: 100vh;
+}
+
+.light .glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.light .glass-light {
+  background: rgba(0, 0, 0, 0.02);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.light .modal-overlay {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.light .tracker-grid {
+  background-image: 
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 100% var(--hour-height);
+}
+
+/* Light theme text colors */
+.light .text-surface-50 { color: #0c0a09; }
+.light .text-surface-100 { color: #1c1917; }
+.light .text-surface-200 { color: #292524; }
+.light .text-surface-300 { color: #44403c; }
+.light .text-surface-400 { color: #57534e; }
+.light .text-surface-500 { color: #78716c; }
+
+/* Light theme background colors */
+.light .bg-surface-700 { background-color: #e7e5e4; }
+.light .bg-surface-700\/50 { background-color: rgba(231, 229, 228, 0.5); }
+.light .bg-surface-800 { background-color: #d6d3d1; }
+.light .bg-surface-800\/30 { background-color: rgba(214, 211, 209, 0.3); }
+.light .bg-surface-800\/50 { background-color: rgba(214, 211, 209, 0.5); }
+.light .bg-surface-900 { background-color: #fafaf9; }
+
+/* Light theme borders */
+.light .border-surface-600 { border-color: #d6d3d1; }
+.light .border-surface-700 { border-color: #e7e5e4; }
+.light .border-surface-700\/50 { border-color: rgba(231, 229, 228, 0.5); }
+.light .border-surface-800 { border-color: #d6d3d1; }
+.light .border-surface-800\/30 { border-color: rgba(214, 211, 209, 0.3); }
+.light .border-surface-800\/50 { border-color: rgba(214, 211, 209, 0.5); }
+
+/* Light theme hover states */
+.light .hover\:bg-surface-700\/50:hover { background-color: rgba(231, 229, 228, 0.5); }
+.light .hover\:bg-surface-800\/30:hover { background-color: rgba(214, 211, 209, 0.3); }
+.light .hover\:bg-surface-800\/50:hover { background-color: rgba(214, 211, 209, 0.5); }
+.light .hover\:text-surface-200:hover { color: #292524; }
+.light .hover\:text-surface-300:hover { color: #44403c; }
+
+/* Light theme input styles */
+.light input[type="text"],
+.light input[type="email"],
+.light input[type="tel"],
+.light input[type="search"] {
+  background-color: rgba(255, 255, 255, 0.8);
+  border-color: #d6d3d1;
+  color: #1c1917;
+}
+
+.light input::placeholder {
+  color: #a8a29e;
+}
+
+.light .checkbox-custom {
+  border-color: #a8a29e;
+}
+
+.light .checkbox-custom:checked {
+  background: var(--color-primary-500);
+  border-color: var(--color-primary-500);
+}
+
+/* ============================================================================
+   COMMON STYLES
+   ============================================================================ */
+
+/* Custom scrollbar - Dark */
+.dark ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-::-webkit-scrollbar-track {
+.dark ::-webkit-scrollbar-track {
   background: var(--color-surface-900);
   border-radius: 4px;
 }
 
-::-webkit-scrollbar-thumb {
+.dark ::-webkit-scrollbar-thumb {
   background: var(--color-surface-600);
   border-radius: 4px;
 }
 
-::-webkit-scrollbar-thumb:hover {
+.dark ::-webkit-scrollbar-thumb:hover {
   background: var(--color-surface-500);
+}
+
+/* Custom scrollbar - Light */
+.light ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.light ::-webkit-scrollbar-track {
+  background: #f5f5f4;
+  border-radius: 4px;
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: #d6d3d1;
+  border-radius: 4px;
+}
+
+.light ::-webkit-scrollbar-thumb:hover {
+  background: #a8a29e;
 }
 
 /* Activity block stripes for "ending soon" */
@@ -106,6 +245,16 @@ body {
     rgba(255, 255, 255, 0.1) 16px
   );
   animation: stripe-move 1s linear infinite;
+}
+
+.light .activity-ending-soon {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 8px,
+    rgba(0, 0, 0, 0.05) 8px,
+    rgba(0, 0, 0, 0.05) 16px
+  );
 }
 
 @keyframes stripe-move {
@@ -199,7 +348,7 @@ body {
 .stagger-7 { animation-delay: 350ms; }
 .stagger-8 { animation-delay: 400ms; }
 
-/* Glass effect */
+/* Glass effect - base (overridden by theme) */
 .glass {
   background: rgba(28, 25, 23, 0.8);
   backdrop-filter: blur(12px);
@@ -259,14 +408,7 @@ body {
   }
 }
 
-/* Day tracker grid lines */
-.tracker-grid {
-  background-image: 
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 100% var(--hour-height);
-}
-
-/* Modal overlay */
+/* Modal overlay - base */
 .modal-overlay {
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(4px);
@@ -343,3 +485,11 @@ body {
   }
 }
 
+/* Theme transition */
+body,
+.glass,
+.glass-light,
+input,
+button {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

@@ -7,10 +7,11 @@ import {
   ChevronDown,
   Calendar,
   Users,
-  LogOut,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Avatar, Badge, Button } from "@/components/ui";
+import { Avatar, Button } from "@/components/ui";
 import { useUserStore, useNotificationsStore, useUIStore } from "@/store";
 import { formatDate } from "@/lib/utils";
 import { useActivitiesStore } from "@/store/activitiesStore";
@@ -18,7 +19,7 @@ import { useActivitiesStore } from "@/store/activitiesStore";
 export function Header() {
   const { currentUser } = useUserStore();
   const { unreadCount } = useNotificationsStore();
-  const { openSettingsModal } = useUIStore();
+  const { openSettingsModal, theme, toggleTheme } = useUIStore();
   const { selectedDate, dayTrackers, selectedTrackerId, setSelectedTrackerId } =
     useActivitiesStore();
   const [showTrackerMenu, setShowTrackerMenu] = useState(false);
@@ -98,8 +99,17 @@ export function Header() {
         </div>
       </div>
 
-      {/* Right: Notifications & Profile */}
-      <div className="flex items-center gap-4">
+      {/* Right: Theme Toggle, Notifications & Profile */}
+      <div className="flex items-center gap-2">
+        {/* Theme Toggle */}
+        <button
+          onClick={toggleTheme}
+          className="p-2 rounded-lg text-surface-400 hover:text-surface-200 hover:bg-surface-800/50 transition-colors"
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
+
         {/* Notifications */}
         <div className="relative">
           <button
@@ -129,7 +139,7 @@ export function Header() {
 
         {/* Profile */}
         {currentUser && (
-          <div className="flex items-center gap-3 pl-4 border-l border-surface-700">
+          <div className="flex items-center gap-3 pl-4 ml-2 border-l border-surface-700">
             <Avatar
               name={currentUser.displayName}
               imageUrl={currentUser.avatarUrl}
@@ -212,4 +222,3 @@ function formatTimeAgo(date: Date): string {
   if (hours < 24) return `${hours}h ago`;
   return `${days}d ago`;
 }
-

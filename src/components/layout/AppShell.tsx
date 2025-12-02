@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { Header } from "./Header";
+import { ThemeProvider } from "./ThemeProvider";
 import {
   useUserStore,
   useFriendsStore,
@@ -21,7 +22,7 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
-  const { setCurrentUser, isLoading: userLoading } = useUserStore();
+  const { setCurrentUser } = useUserStore();
   const { setFriends, setGroups } = useFriendsStore();
   const { setStatusTemplates, setDayTrackers, setActivities, setSelectedTrackerId } =
     useActivitiesStore();
@@ -56,10 +57,11 @@ export function AppShell({ children }: AppShellProps) {
   ]);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-1 flex overflow-hidden">{children}</main>
-    </div>
+    <ThemeProvider>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex overflow-hidden">{children}</main>
+      </div>
+    </ThemeProvider>
   );
 }
-

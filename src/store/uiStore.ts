@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type { StatusTemplate, Activity } from "@/types";
 
 interface DragState {
@@ -17,10 +18,17 @@ interface ModalState {
   isSettingsModalOpen: boolean;
 }
 
+type Theme = "light" | "dark";
+
 interface UIState {
+  // Theme
+  theme: Theme;
+  
   // Sidebar states
   isSidebarCollapsed: boolean;
+  sidebarWidth: number;
   isFriendsPanelCollapsed: boolean;
+  friendsPanelWidth: number;
   
   // Drag state
   drag: DragState;
@@ -31,9 +39,17 @@ interface UIState {
   // Toast/notification state
   toasts: ToastMessage[];
   
-  // Actions
+  // Theme actions
+  setTheme: (theme: Theme) => void;
+  toggleTheme: () => void;
+  
+  // Sidebar actions
   setSidebarCollapsed: (collapsed: boolean) => void;
+  toggleSidebarCollapsed: () => void;
+  setSidebarWidth: (width: number) => void;
   setFriendsPanelCollapsed: (collapsed: boolean) => void;
+  toggleFriendsPanelCollapsed: () => void;
+  setFriendsPanelWidth: (width: number) => void;
   
   // Drag actions
   startDrag: (status: StatusTemplate, startY: number) => void;
@@ -65,130 +81,154 @@ interface ToastMessage {
   duration?: number;
 }
 
-export const useUIStore = create<UIState>((set) => ({
-  // Initial states
-  isSidebarCollapsed: false,
-  isFriendsPanelCollapsed: false,
-  
-  drag: {
-    isDragging: false,
-    draggedStatus: null,
-    dragStartY: 0,
-    currentY: 0,
-  },
-  
-  modals: {
-    isActivityModalOpen: false,
-    selectedActivity: null,
-    isAddFriendModalOpen: false,
-    isCreateStatusModalOpen: false,
-    isCreateGroupModalOpen: false,
-    isSettingsModalOpen: false,
-  },
-  
-  toasts: [],
-
-  // Sidebar actions
-  setSidebarCollapsed: (collapsed) => set({ isSidebarCollapsed: collapsed }),
-  setFriendsPanelCollapsed: (collapsed) => set({ isFriendsPanelCollapsed: collapsed }),
-
-  // Drag actions
-  startDrag: (status, startY) =>
-    set({
-      drag: {
-        isDragging: true,
-        draggedStatus: status,
-        dragStartY: startY,
-        currentY: startY,
-      },
-    }),
-
-  updateDrag: (currentY) =>
-    set((state) => ({
-      drag: { ...state.drag, currentY },
-    })),
-
-  endDrag: () =>
-    set({
+export const useUIStore = create<UIState>()(
+  persist(
+    (set) => ({
+      // Initial states
+      theme: "dark",
+      isSidebarCollapsed: false,
+      sidebarWidth: 256,
+      isFriendsPanelCollapsed: false,
+      friendsPanelWidth: 288,
+      
       drag: {
         isDragging: false,
         draggedStatus: null,
         dragStartY: 0,
         currentY: 0,
       },
-    }),
-
-  // Modal actions
-  openActivityModal: (activity) =>
-    set((state) => ({
+      
       modals: {
-        ...state.modals,
-        isActivityModalOpen: true,
-        selectedActivity: activity,
-      },
-    })),
-
-  closeActivityModal: () =>
-    set((state) => ({
-      modals: {
-        ...state.modals,
         isActivityModalOpen: false,
         selectedActivity: null,
+        isAddFriendModalOpen: false,
+        isCreateStatusModalOpen: false,
+        isCreateGroupModalOpen: false,
+        isSettingsModalOpen: false,
       },
-    })),
+      
+      toasts: [],
 
-  openAddFriendModal: () =>
-    set((state) => ({
-      modals: { ...state.modals, isAddFriendModalOpen: true },
-    })),
+      // Theme actions
+      setTheme: (theme) => set({ theme }),
+      toggleTheme: () => set((state) => ({ theme: state.theme === "dark" ? "light" : "dark" })),
 
-  closeAddFriendModal: () =>
-    set((state) => ({
-      modals: { ...state.modals, isAddFriendModalOpen: false },
-    })),
+      // Sidebar actions
+      setSidebarCollapsed: (collapsed) => set({ isSidebarCollapsed: collapsed }),
+      toggleSidebarCollapsed: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
+      setSidebarWidth: (width) => set({ sidebarWidth: Math.max(180, Math.min(400, width)) }),
+      setFriendsPanelCollapsed: (collapsed) => set({ isFriendsPanelCollapsed: collapsed }),
+      toggleFriendsPanelCollapsed: () => set((state) => ({ isFriendsPanelCollapsed: !state.isFriendsPanelCollapsed })),
+      setFriendsPanelWidth: (width) => set({ friendsPanelWidth: Math.max(200, Math.min(450, width)) }),
 
-  openCreateStatusModal: () =>
-    set((state) => ({
-      modals: { ...state.modals, isCreateStatusModalOpen: true },
-    })),
+      // Drag actions
+      startDrag: (status, startY) =>
+        set({
+          drag: {
+            isDragging: true,
+            draggedStatus: status,
+            dragStartY: startY,
+            currentY: startY,
+          },
+        }),
 
-  closeCreateStatusModal: () =>
-    set((state) => ({
-      modals: { ...state.modals, isCreateStatusModalOpen: false },
-    })),
+      updateDrag: (currentY) =>
+        set((state) => ({
+          drag: { ...state.drag, currentY },
+        })),
 
-  openCreateGroupModal: () =>
-    set((state) => ({
-      modals: { ...state.modals, isCreateGroupModalOpen: true },
-    })),
+      endDrag: () =>
+        set({
+          drag: {
+            isDragging: false,
+            draggedStatus: null,
+            dragStartY: 0,
+            currentY: 0,
+          },
+        }),
 
-  closeCreateGroupModal: () =>
-    set((state) => ({
-      modals: { ...state.modals, isCreateGroupModalOpen: false },
-    })),
+      // Modal actions
+      openActivityModal: (activity) =>
+        set((state) => ({
+          modals: {
+            ...state.modals,
+            isActivityModalOpen: true,
+            selectedActivity: activity,
+          },
+        })),
 
-  openSettingsModal: () =>
-    set((state) => ({
-      modals: { ...state.modals, isSettingsModalOpen: true },
-    })),
+      closeActivityModal: () =>
+        set((state) => ({
+          modals: {
+            ...state.modals,
+            isActivityModalOpen: false,
+            selectedActivity: null,
+          },
+        })),
 
-  closeSettingsModal: () =>
-    set((state) => ({
-      modals: { ...state.modals, isSettingsModalOpen: false },
-    })),
+      openAddFriendModal: () =>
+        set((state) => ({
+          modals: { ...state.modals, isAddFriendModalOpen: true },
+        })),
 
-  // Toast actions
-  addToast: (toast) =>
-    set((state) => ({
-      toasts: [
-        ...state.toasts,
-        { ...toast, id: crypto.randomUUID() },
-      ],
-    })),
+      closeAddFriendModal: () =>
+        set((state) => ({
+          modals: { ...state.modals, isAddFriendModalOpen: false },
+        })),
 
-  removeToast: (id) =>
-    set((state) => ({
-      toasts: state.toasts.filter((t) => t.id !== id),
-    })),
-}));
+      openCreateStatusModal: () =>
+        set((state) => ({
+          modals: { ...state.modals, isCreateStatusModalOpen: true },
+        })),
 
+      closeCreateStatusModal: () =>
+        set((state) => ({
+          modals: { ...state.modals, isCreateStatusModalOpen: false },
+        })),
+
+      openCreateGroupModal: () =>
+        set((state) => ({
+          modals: { ...state.modals, isCreateGroupModalOpen: true },
+        })),
+
+      closeCreateGroupModal: () =>
+        set((state) => ({
+          modals: { ...state.modals, isCreateGroupModalOpen: false },
+        })),
+
+      openSettingsModal: () =>
+        set((state) => ({
+          modals: { ...state.modals, isSettingsModalOpen: true },
+        })),
+
+      closeSettingsModal: () =>
+        set((state) => ({
+          modals: { ...state.modals, isSettingsModalOpen: false },
+        })),
+
+      // Toast actions
+      addToast: (toast) =>
+        set((state) => ({
+          toasts: [
+            ...state.toasts,
+            { ...toast, id: crypto.randomUUID() },
+          ],
+        })),
+
+      removeToast: (id) =>
+        set((state) => ({
+          toasts: state.toasts.filter((t) => t.id !== id),
+        })),
+    }),
+    {
+      name: "bethere-ui",
+      partialize: (state) => ({
+        theme: state.theme,
+        sidebarWidth: state.sidebarWidth,
+        isSidebarCollapsed: state.isSidebarCollapsed,
+        friendsPanelWidth: state.friendsPanelWidth,
+        isFriendsPanelCollapsed: state.isFriendsPanelCollapsed,
+      }),
+    }
+  )
+);
